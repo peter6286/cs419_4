@@ -84,7 +84,7 @@ def gen_work(nbits, hash):
 
 
 def main():
-    nbits = int(18)
+    nbits = int(20)
     file_name = "test.txt"
 
     # error check for file

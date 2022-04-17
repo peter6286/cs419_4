@@ -14,7 +14,7 @@ def get_hash(str):
     m.update(str)
     return m.hexdigest()
 
-
+'''
 def check_leading2(nbits, hash):
     # each 0 char is
     leading_char_zero = nbits // 4
@@ -24,7 +24,21 @@ def check_leading2(nbits, hash):
     remaining_zero = nbits % 4
     a = hex_dict[hash[leading_char_zero]]
     return a >= remaining_zero
+'''
 
+def checkzero(str):
+    a = int(str, 16)
+    bnr = bin(a).replace('0b', '')
+    x = bnr[::-1]
+    while len(x) < 4:
+        x += '0'
+    bnr = x[::-1]
+    count = 0
+    for item in bnr:
+        if item == '1':
+            return count
+        elif item == '0':
+            count += 1
 
 def check_leading(nbits, hash):
     # each 0 char is
@@ -34,8 +48,8 @@ def check_leading(nbits, hash):
     for i in range(leading_char_zero):
         if hash[i] != list_zero[i]:
             return False
-
-    latch_zero = hex_dict[hash[leading_char_zero]]
+    latch_zero = checkzero(hash[leading_char_zero])
+    # latch_zero = hex_dict[hash[leading_char_zero]]
     return latch_zero >= remaining_zero
 
 
@@ -46,7 +60,7 @@ def get_leading(nbits, hash):
             break
         num_leading += 4
 
-    return num_leading + hex_dict[hash[num_leading // 4].lower()]
+    return num_leading + checkzero(hash[num_leading // 4].lower())
 
 
 def work_back(work, length):
@@ -131,7 +145,7 @@ def gen_work(nbits, hash):
 
 
 def main():
-    nbits = int(18)
+    nbits = int(20)
     file_name = "test.txt"
 
     # error check for file
@@ -180,5 +194,6 @@ if __name__ == "__main__":
         return -1
 
     file_name = sys.argv[2]
+    
     '''
     main()
