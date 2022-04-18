@@ -2,13 +2,23 @@
 import sys
 import hashlib
 
-hex_dict = {'0': 4, '1': 3, '2': 2, '3': 2, '4': 1, '5': 1, '6': 1, '7': 1, '8': 0, '9': 0, 'a': 0, 'b': 0, 'c': 0,
-            'd': 0, 'e': 0, 'f': 0}
+def checkzero(str):
+    a = int(str, 16)
+    bnr = bin(a).replace('0b', '')
+    x = bnr[::-1]
+    while len(x) < 4:
+        x += '0'
+    bnr = x[::-1]
+    count = 0
+    for item in bnr:
+        if item == '1':
+            return count
+        elif item == '0':
+            count += 1
+    return count
 
-
-def get_hash(str):
+def sha256(str):
     m = hashlib.sha256()
-    # m.update(bytes(str, 'utf-8')) # I did this when reading it in as r instead of rb mode
     m.update(str)
     return m.hexdigest()
 
@@ -20,102 +30,110 @@ def get_leading(hash):
             break
         num_leading += 4
 
-    return num_leading + hex_dict[char.lower()]
+    return num_leading + checkzero(char.lower())
+
+def checkhash(text_hash,header_hash):
+    if header_hash != text_hash :
+        print('ERROR: inital hashes do not match ')
+        print('hash in header: {}'.format(header_hash))
+        print('file hash: {}'.format(text_hash))
+    else:
+        print('PASSED: inital file hashes match')
+        return True
+    return False
+
+def checkleading(text_hash,work,leading):
+    final_mes = text_hash + work
+    final_calc_hash = sha256(str.encode(final_mes))
+    calc_leading = get_leading(final_calc_hash)
+    try:
+        given_leading = int(leading)
+    except ValueError:
+        print('Given leading bits is not a valid num')
+
+    if calc_leading != given_leading:
+        print('ERROR: incorrect Leading-bits value:{} ,expected {}'.format(given_leading,calc_leading))
+    else:
+        print('PASSED: leading bits is correct')
+        return True
+    return False
 
 
-def main():
-    if len(sys.argv) != 3:
-        print('Please input correct number of args')
-        return -1
+def checkwork(text_hash,work,header_hash):
+    final_mes = text_hash + work
+    final_calc_hash = sha256(str.encode(final_mes))
+    if final_calc_hash != header_hash:
+        print('ERROR: pow hash does not match Hash header')
+        print('expected: {}'.format(final_calc_hash))
+        print('header has: {}'.format(header_hash))
+    else:
+        print("PASSED: hash matches Hash header")
+        return True
+    return False
 
-    header_file_name = sys.argv[1]
-    text_file_name = sys.argv[2]
 
-    header_file = open(header_file_name, 'r')
-    text_file = open(text_file_name, 'rb')
+def process(header_init,header_work,header_hash,header_leading,init_mes):
 
-    if not header_file:
-        print('File cannot open')
-        return -1
-    if not text_file:
-        print('File cannot open')
-        return -1
+    text_hash = sha256(init_mes)
+    initcheck = checkhash(text_hash,header_init)
+    leadcheck = checkleading(text_hash, header_work, header_leading)
+    workcheck = checkwork(text_hash,header_work,header_hash)
 
-    # parse file line by line
-    for line in header_file:
-        # try to find the matching substrings
+
+    if initcheck and leadcheck and workcheck:
+        print('pass')
+    else:
+        print("fail")
+
+def readfile(header,text):
+    readh = open(header, 'r')
+    readt = open(text, 'rb')
+    fileinit = fileproof = filehash = fileleading = False
+    if not readh:
+        exit('File cannot open')
+    if not readt:
+        exit('File cannot open')
+
+    for line in readh:
         if 'INITIAL-HASH: ' in line.upper():
-            # find the initial_hash they gave us
-            header_init = line[line.find(':') + 2:].strip()
-            # print(line, end='')
+            header_init = line[line.index(':') + 2:].strip()
+            fileinit = True
 
         elif 'PROOF-OF-WORK: ' in line.upper():
-            header_work = line[line.find(':') + 2:].strip()
-            # print(line,end='')
+            header_work = line[line.index(':') + 2:].strip()
+            fileproof = True
+
 
         elif 'HASH: ' in line.upper():
-            header_hash = line[line.find(':') + 2:].strip()
-            # print(line,end='')
+            header_hash = line[line.index(':') + 2:].strip()
+            filehash = True
 
-        elif 'LEADING-BITS: ' in line.upper():
-            header_leading = line[line.find(':') + 2:].strip()
-            # print(line,end='')
 
-    # check if each of the 4 things we need exist
-    if not header_init:
-        print('No given initial hash')
-        return -1
+        elif 'LEADING-ZERO-BITS: ' in line.upper():
+            header_leading = line[line.index(':') + 2:].strip()
+            fileleading = True
 
-    if not header_work:
-        print("No given work")
-        return -1
+    if not fileinit:
+        exit('No given initial hash')
 
-    if not header_hash:
-        print('No given hash')
-        return -1
+    if not fileproof:
+        exit("No given work")
 
-    if not header_leading:
-        print('No given leading bits')
-        return -1
+    if not filehash:
+        exit('No given hash')
 
-    '''
+    if not fileleading:
+        exit('No given leading bits')
 
-    if init_calc_hash != init_given_hash:
-        print('Initial hash does not match')
-        return -1
-    '''
-    # calculate final hash
-    init_mes = text_file.read()
-    text_hash = get_hash(init_mes)
-    final_mes = text_hash + header_work
-    final_calc_hash = get_hash(str.encode(final_mes))
+    init_mes = readt.read()
 
-    if header_init != text_hash :
-        print('ERROR: inital hashes do not match \n')
-        print('hash in header: {}'.format(header_init))
-        print('file hash: {}'.format(text_hash))
-
-        # calc num leading bits
-        calc_leading = get_leading(final_calc_hash)
-        # need to try to cast leading bits to int
-        try:
-            given_leading = int(header_leading)
-        except ValueError:
-            print('Given leading bits is not a valid num')
-            return -1
-
-        if calc_leading != given_leading:
-            print('Leading bits does not match')
-            return -1
-
-    if final_calc_hash != header_hash:
-        print('ERROR: pow hash does not match Hash header \n')
-        print('expected: {}'.format(final_calc_hash))
-        print('header has: {}'.format(text_hash))
-
-    print('pass')
-    return 0
+    return header_init, header_work, header_hash, header_leading, init_mes
 
 
 if __name__ == "__main__":
-    main()
+    if len(sys.argv) != 3:
+        exit('Please input correct number of args')
+    header = sys.argv[1]
+    text = sys.argv[2]
+    header_init, header_work, header_hash, header_leading, init_mes = readfile(header,text)
+    process(header_init, header_work, header_hash, header_leading, init_mes)
