@@ -1,19 +1,28 @@
+header_file = open('abc.pow-15', 'r')
+for line in header_file:
+    # try to find the matching substrings
+    if 'INITIAL-HASH: ' in line.upper():
+        # find the initial_hash they gave us
+        init_given_hash = line[line.index(':') + 2:].strip()
+        if not init_given_hash:
+            print('No given initial hash')
+        # print(line, end='')
 
-def work_back2(work, length):
+    elif 'PROOF-OF-WORK: ' in line.upper():
+        work = line[line.index(':') + 2:].strip()
+        if not work:
+            print("No given work")
+        # print(line,end='')
 
-    for idx in range(0,len(work)):
-        if work[idx] == chr(126):
-            if idx == len(work)-1:
-                work.append(chr(33))
-                length +=1
-            work[idx] = chr(33)
-        else:
-            work[idx] = chr(ord(work[idx]) + 1)
-            break
+    elif 'HASH: ' in line.upper():
+        final_given_hash = line[line.index(':') + 2:].strip()
+        if not final_given_hash:
+            print('No given hash')
+        # print(line,end='')
 
-
-
-    return work, length
-
-
-print(work_back2(['!','!'],1) )
+    elif 'LEADING-BITS: ' in line.upper():
+        given_leading = line[line.index(':')].strip()
+        if not given_leading:
+            print('No given leading bits')
+        # print(line,end='')
+print(init_given_hash)

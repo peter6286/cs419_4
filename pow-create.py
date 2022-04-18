@@ -33,16 +33,6 @@ def check_leading2(nbits, hash):
     return checkzero(hash[leading_char_zero]) >= remaining_zero
 
 
-def check_leading(nbits, hash):
-    # each 0 char is
-    leading_char_zero = nbits // 4
-    if hash[:leading_char_zero] != ''.join(['0' for _ in range(leading_char_zero)]):
-        return False
-
-    remaining_zero = nbits % 4
-
-    return hex_dict[hash[leading_char_zero]] >= remaining_zero
-
 
 def get_leading(nbits, hash):
     num_leading = 0
