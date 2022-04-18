@@ -7,11 +7,36 @@ hex_dict = {'0': 4, '1': 3, '2': 2, '3': 2, '4': 1, '5': 1, '6': 1, '7': 1, '8':
             'd': 0, 'e': 0, 'f': 0}
 
 
+
+def checkzero(str):
+    a = int(str, 16)
+    bnr = bin(a).replace('0b', '')
+    x = bnr[::-1]
+    while len(x) < 4:
+        x += '0'
+    bnr = x[::-1]
+    count = 0
+    for item in bnr:
+        if item == '1':
+            return count
+        elif item == '0':
+            count += 1
+
 def get_hash(str):
     m = hashlib.sha256()
     # m.update(bytes(str, 'utf-8')) # I did this when reading it in as r instead of rb mode
     m.update(str)
     return m.hexdigest()
+
+def check_leading2(nbits, hash):
+    # each 0 char is
+    leading_char_zero = nbits // 4
+    if hash[:leading_char_zero] != ''.join(['0' for _ in range(leading_char_zero)]):
+        return False
+
+    remaining_zero = nbits % 4
+    # a = hex_dict[hash[leading_char_zero]]
+    return checkzero(hash[leading_char_zero]) >= remaining_zero
 
 
 def check_leading(nbits, hash):
@@ -32,50 +57,56 @@ def get_leading(nbits, hash):
             break
         num_leading += 4
 
-    return num_leading + hex_dict[hash[num_leading // 4].lower()]
+    return num_leading + checkzero(hash[num_leading // 4].lower())
+
 
 
 def work_back(work, length):
+
     go_back = 1
     # loop in reverse
-    for idx in range(length, -1, -1):
+    for idx in range( length, -1, -1 ):
         # check if at last char
         if work[idx] == chr(126):
             go_back = 1
             work[idx] = chr(33)
         else:
             go_back = 0
-            work[idx] = chr(ord(work[idx]) + 1)
+            work[idx] = chr( ord(work[idx]) + 1 )
             break
 
     if go_back == 1:
-        work.append(chr(33))
+        work.append( chr(33) )
         length += 1
 
     return work, length
 
+def work_back2(work):
+    for idx in range(0,len(work)):
+        if work[idx] == chr(126):
+            if idx == len(work)-1:
+                work.append(chr(33))
+            work[idx] = chr(33)
+        else:
+            work[idx] = chr(ord(work[idx]) + 1)
+            break
+    return work
+
 
 def gen_work(nbits, hash):
-    if check_leading(nbits, hash):
+    if check_leading2(nbits, hash):
         return "", hash, 0
 
     # 7-bit : 33 - 126
     char = 33
     # has to be a list because strings are immutable
     work = [chr(char)]
-    length = 0
     iteration = 1
-    new_mes = "".join(work) + hash
+    new_mes = hash + "".join(work)
     new_hash = get_hash(str.encode(new_mes))
-    while not check_leading(nbits, new_hash):
-        char += 1
-        if char > 126:
-            char = 33
-            work, length = work_back(work, length)
-        else:
-            work[length] = chr(char)
-
-        new_mes = "".join(work) + hash
+    while not check_leading2(nbits, new_hash):
+        work = work_back2(work)
+        new_mes = hash + "".join(work)
         new_hash = get_hash(str.encode(new_mes))
         iteration += 1
 
@@ -85,7 +116,7 @@ def gen_work(nbits, hash):
 
 def main():
     nbits = int(20)
-    file_name = "test.txt"
+    file_name = "walrus.txt"
 
     # error check for file
     f = open(file_name, 'rb')
